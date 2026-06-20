@@ -1,0 +1,65 @@
+module baud_rate_genrator(
+    input clock,
+    input reset,
+    output reg tx_enable,
+    output reg rx_enable
+);
+
+    parameter clk_freq  = 100000000; // SYSTEM CLOCK FREQUENCY
+    parameter baud_rate = 9600;      // REQUIRED BAUD RATE
+
+    reg [15:0] tx_counter; // REGISTER FOR CREATING THE SENDER CLOCK
+    reg [15:0] rx_counter; // REGISTER FOR CREATING THE RECEIVER CLOCK
+
+    parameter tx_divisor = clk_freq/baud_rate;        // PRESCALER OF SENDER
+    parameter rx_divisor = clk_freq/(16*baud_rate);   // PRESCALER OF RECEIVER
+
+
+    // SENDER CLOCK GENERATION LOGIC
+    always @(posedge clock)
+    begin
+        if (reset)
+        begin
+            tx_counter <= 0;
+            tx_enable  <= 0;
+        end
+
+        // FOR 10,416 CLOCK CYCLES OF SYSTEM CLOCK 1 CLOCK CYCLE IS GENERATED
+        else if (tx_counter == tx_divisor - 1)
+        begin
+            tx_enable  <= 1;
+            tx_counter <= 0;
+        end
+
+        else
+        begin
+            tx_counter <= tx_counter + 1'b1;
+            tx_enable  <= 0;
+        end
+    end
+
+
+    // RECEIVER CLOCK GENERATION LOGIC
+    always @(posedge clock)
+    begin
+        if (reset)
+        begin
+            rx_counter <= 0;
+            rx_enable  <= 0;
+        end
+
+        // FOR GENERATING RECEIVER CLOCK
+        else if (rx_counter == rx_divisor - 1)
+        begin
+            rx_counter <= 0;
+            rx_enable  <= 1;
+        end
+
+        else
+        begin
+            rx_counter <= rx_counter + 1'b1;
+            rx_enable  <= 0;
+        end
+    end
+
+endmodule
