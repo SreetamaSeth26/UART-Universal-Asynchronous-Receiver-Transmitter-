@@ -1,0 +1,87 @@
+module transmitter(
+    input clk,
+    input reset,
+    input wr_enable,
+    input enable,
+    input [7:0] data_in,
+    output reg tx,
+    output busy
+);
+
+    parameter IDLE_STATE  = 2'b00,
+              START_STATE = 2'b01,
+              DATA_STATE  = 2'b10,
+              STOP_STATE  = 2'b11;
+
+    reg [7:0] data;
+    reg [2:0] index;
+    reg [1:0] state;
+
+    always @(posedge clk)
+    begin
+        if (reset)
+        begin
+            tx    <= 1'b1;
+            state <= IDLE_STATE;
+            data  <= 8'h00;
+            index <= 3'h0;
+        end
+        else
+        begin
+            case (state)
+
+                IDLE_STATE:
+                begin
+                    tx <= 1'b1;
+                    if (wr_enable)
+                    begin
+                        data  <= data_in;
+                        index <= 3'h0;
+                        state <= START_STATE;
+                    end
+                end
+
+                START_STATE:
+                begin
+                    if (enable)
+                    begin
+                        tx    <= 1'b0;      // Start bit
+                        state <= DATA_STATE;
+                    end
+                end
+
+                DATA_STATE:
+                begin
+                    if (enable)
+                    begin
+                        tx <= data[index];
+
+                        if (index == 3'h7)
+                            state <= STOP_STATE;
+                        else
+                            index <= index + 3'h1;
+                    end
+                end
+
+                STOP_STATE:
+                begin
+                    if (enable)
+                    begin
+                        tx    <= 1'b1;      // Stop bit
+                        state <= IDLE_STATE;
+                    end
+                end
+
+                default:
+                begin
+                    tx    <= 1'b1;
+                    state <= IDLE_STATE;
+                end
+
+            endcase
+        end
+    end
+
+    assign busy = (state != IDLE_STATE);
+
+endmodule
