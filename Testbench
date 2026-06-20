@@ -1,0 +1,105 @@
+module uart_top_tb;
+
+    reg clk;
+    reg reset;
+    reg [7:0] data_in;
+    reg wr_enable;
+    reg ready_clear;
+
+    wire ready;
+    wire busy;
+    wire [7:0] data_out;
+
+    // DUT
+    uart_top dut(
+        reset,
+        data_in,
+        wr_enable,
+        clk,
+        ready_clear,
+        ready,
+        busy,
+        data_out
+    );
+
+    // Clock generation (100 MHz)
+    initial
+        clk = 0;
+
+    always #5 clk = ~clk;
+
+    // Task to transmit one byte
+    task send_byte(input [7:0] din);
+    begin
+        @(negedge clk);
+        data_in   = din;
+        wr_enable = 1'b1;
+
+        @(negedge clk);
+        wr_enable = 1'b0;
+    end
+    endtask
+
+    // Task to clear ready signal
+    task clear_ready;
+    begin
+        @(negedge clk);
+        ready_clear = 1'b1;
+
+        @(negedge clk);
+        ready_clear = 1'b0;
+    end
+    endtask
+
+    initial
+    begin
+      $dumpfile("dump.vcd");
+      $dumpvars(0,uart_top_tb);
+        // Initialize
+        reset       = 1'b0;
+        data_in     = 8'h00;
+        wr_enable   = 1'b0;
+        ready_clear = 1'b0;
+
+        // Apply reset
+        @(negedge clk);
+        reset = 1'b1;
+
+        @(negedge clk);
+        reset = 1'b0;
+
+        // Send 0x41 ('A')
+        send_byte(8'h41);
+
+        wait(!busy);
+        wait(ready);
+
+        $display("Received data = %h", data_out);
+
+        clear_ready;
+
+        // Send 0x55
+        send_byte(8'h55);
+
+        wait(!busy);
+        wait(ready);
+
+        $display("Received data = %h", data_out);
+
+        clear_ready;
+
+        // Send 0xAA
+        send_byte(8'hAA);
+
+        wait(!busy);
+        wait(ready);
+
+        $display("Received data = %h", data_out);
+
+        clear_ready;
+
+        #1000;
+        $finish;
+    end
+
+endmodule
