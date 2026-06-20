@@ -6,8 +6,8 @@ module uart_top(
     input ready_clear,
     output ready,
     output busy,
-    output [7:0] data_out
-);
+    output [7:0] data_out);
+
 
     wire rx_clk_enable;
     wire tx_clk_enable;
@@ -17,8 +17,8 @@ module uart_top(
         clk,
         reset,
         tx_clk_enable,
-        rx_clk_enable
-    );
+        rx_clk_enable );
+   
 
     transmitter ts (
         clk,
@@ -27,8 +27,8 @@ module uart_top(
         tx_clk_enable,
         data_in,
         tx_temp,
-        busy
-    );
+        busy);
+    
 
     receiver rc (
         clk,
@@ -37,7 +37,7 @@ module uart_top(
         ready_clear,
         rx_clk_enable,
         ready,
-        data_out
-    );
+        data_out );
+   
 
 endmodule
