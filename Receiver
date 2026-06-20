@@ -1,0 +1,98 @@
+module receiver(
+    input clk,
+    input reset,
+    input rx,
+    input ready_clear,
+    input enable,
+    output reg ready,
+    output reg [7:0] data_out
+);
+
+    parameter START_STATE    = 2'b00,
+              DATA_OUT_STATE = 2'b01,
+              STOP_STATE     = 2'b10;
+
+    reg [1:0] state;
+    reg [3:0] sample;
+    reg [3:0] index;
+    reg [7:0] temp_register;
+
+    always @(posedge clk)
+    begin
+        if (reset)
+        begin
+            state         <= START_STATE;
+            sample        <= 4'd0;
+            index         <= 4'd0;
+            temp_register <= 8'd0;
+            data_out      <= 8'd0;
+            ready         <= 1'b0;
+        end
+        else
+        begin
+            if (ready_clear)
+                ready <= 1'b0;
+
+            if (enable)
+            begin
+                case (state)
+
+                    START_STATE:
+                    begin
+                        if (rx == 1'b0)
+                            sample <= sample + 1'b1;
+                        else
+                            sample <= 4'd0;
+
+                        if (sample == 4'd15)
+                        begin
+                            state         <= DATA_OUT_STATE;
+                            sample        <= 4'd0;
+                            index         <= 4'd0;
+                            temp_register <= 8'd0;
+                        end
+                    end
+
+                    DATA_OUT_STATE:
+                    begin
+                        sample <= sample + 1'b1;
+
+                        if (sample == 4'd8)
+                        begin
+                            temp_register[index] <= rx;
+
+                            if (index == 4'd7)
+                            begin
+                                index  <= 4'd0;
+                                sample <= 4'd0;
+                                state  <= STOP_STATE;
+                            end
+                            else
+                                index <= index + 1'b1;
+                        end
+                    end
+
+                    STOP_STATE:
+                    begin
+                        sample <= sample + 1'b1;
+
+                        if (sample == 4'd15)
+                        begin
+                            state    <= START_STATE;
+                            data_out <= temp_register;
+                            ready    <= 1'b1;
+                            sample   <= 4'd0;
+                        end
+                    end
+
+                    default:
+                    begin
+                        state <= START_STATE;
+                    end
+
+                endcase
+            end
+        end
+    end
+
+endmodule
