@@ -1,0 +1,43 @@
+module uart_top(
+    input reset,
+    input [7:0] data_in,
+    input wr_enable,
+    input clk,
+    input ready_clear,
+    output ready,
+    output busy,
+    output [7:0] data_out
+);
+
+    wire rx_clk_enable;
+    wire tx_clk_enable;
+    wire tx_temp;
+
+    baud_rate_genrator bg (
+        clk,
+        reset,
+        tx_clk_enable,
+        rx_clk_enable
+    );
+
+    transmitter ts (
+        clk,
+        reset,
+        wr_enable,
+        tx_clk_enable,
+        data_in,
+        tx_temp,
+        busy
+    );
+
+    receiver rc (
+        clk,
+        reset,
+        tx_temp,
+        ready_clear,
+        rx_clk_enable,
+        ready,
+        data_out
+    );
+
+endmodule
